@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>酒店预订管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: '微软雅黑', Arial, sans-serif;
+            background: linear-gradient(135deg, #12121c 0%, #1e1e2e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        /* 标签页 */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn {
+            padding: 12px 30px;
+            background: #1e1e2e;
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s;
+        }
+        .tab-btn:hover { background: #2d2d44; }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #4facfe 0%, #6c5ce7 100%);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* 卡片样式 */
+        .card {
+            background: #1e1e2e;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        h2 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, #4facfe 0%, #6c5ce7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* 表格样式 */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #2d2d44;
+        }
+        th {
+            background: #2d2d44;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        tr:hover { background: #252538; }
+        .status-available { color: #00d2a7; font-weight: bold; }
+        .status-booked { color: #ff9f43; font-weight: bold; }
+        
+        /* 按钮样式 */
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #fff;
+            font-weight: bold;
+        }
+        .btn-primary { background: linear-gradient(135deg, #4facfe 0%, #6c5ce7 100%); }
+        .btn-success { background: linear-gradient(135deg, #00d2a7 0%, #00b894 100%); }
+        .btn-danger { background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%); }
+        .btn-accent { background: linear-gradient(135deg, #00d2a7 0%, #00cec9 100%); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
+        
+        /* 表单样式 */
+        .form-group { margin-bottom: 20px; }
+        .form-row { display: grid; grid-template-columns: 150px 1fr; gap: 15px; align-items: center; margin-bottom: 20px; }
+        label { font-size: 14px; color: #a6a6a6; }
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            background: #2d2d44;
+            border: 1px solid #4facfe;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-family: '微软雅黑', Arial, sans-serif;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #6c5ce7;
+            box-shadow: 0 0 10px rgba(79, 172, 254, 0.3);
+        }
+        option { background: #1e1e2e; color: #fff; }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+            .btn-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center; margin-bottom: 30px; font-size: 32px; background: linear-gradient(135deg, #4facfe 0%, #6c5ce7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">酒店预订管理系统</h1>
+        
+        <!-- 标签页 -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('rooms')">房间管理</button>
+            <button class="tab-btn" onclick="switchTab('reservations')">预订列表</button>
+            <button class="tab-btn" onclick="switchTab('newReservation')">新建预订</button>
+        </div>
+        
+        <!-- 房间管理 -->
+        <div id="rooms" class="tab-content active">
+            <div class="card">
+                <h2>酒店房间列表</h2>
+                <table>
+                    <thead>
+                        <tr><th>房间号</th><th>类型</th><th>价格/晚</th><th>状态</th></tr>
+                    </thead>
+                    <tbody id="roomTable"></tbody>
+                </table>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="renderRooms()">刷新房间列表</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 预订列表 -->
+        <div id="reservations" class="tab-content">
+            <div class="card">
+                <h2>当前预订列表</h2>
+                <table>
+                    <thead>
+                        <tr><th>预订 ID</th><th>客户姓名</th><th>房间号</th><th>入住日期</th><th>退房日期</th><th>总金额</th></tr>
+                    </thead>
+                    <tbody id="reservationTable"></tbody>
+                </table>
+                <div class="btn-group">
+                    <button class="btn btn-accent" onclick="renderReservations()">刷新</button>
+                    <button class="btn btn-danger" onclick="cancelReservation()">取消预订</button>
+                    <button class="btn btn-success" onclick="checkOut()">办理退房</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 新建预订 -->
+        <div id="newReservation" class="tab-content">
+            <div class="card">
+                <h2>创建新预订</h2>
+                <div class="form-row">
+                    <label>客户姓名:</label>
+                    <input type="text" id="custName" placeholder="请输入客户姓名">
+                </div>
+                <div class="form-row">
+                    <label>电话号码:</label>
+                    <input type="tel" id="custPhone" placeholder="请输入电话号码">
+                </div>
+                <div class="form-row">
+                    <label>电子邮箱:</label>
+                    <input type="email" id="custEmail" placeholder="请输入电子邮箱">
+                </div>
+                <div class="form-row">
+                    <label>选择房间:</label>
+                    <select id="roomSelect"></select>
+                </div>
+                <div class="form-row">
+                    <label>入住日期:</label>
+                    <input type="date" id="checkIn" value="2026-03-05">
+                </div>
+                <div class="form-row">
+                    <label>退房日期:</label>
+                    <input type="date" id="checkOut" value="2026-03-07">
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="createReservation()" style="width: 140px; height: 45px;">创建预订</button>
+                    <button class="btn btn-accent" onclick="updateRoomSelect()" style="width: 160px; height: 45px;">刷新房间列表</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 数据模型
+        const rooms = [
+            { num: 101, type: '单人间', price: 200, avail: true },
+            { num: 102, type: '单人间', price: 200, avail: true },
+            { num: 201, type: '双人间', price: 350, avail: true },
+            { num: 202, type: '双人间', price: 350, avail: true },
+            { num: 301, type: '豪华间', price: 500, avail: true },
+            { num: 302, type: '豪华间', price: 500, avail: true },
+            { num: 401, type: '套房', price: 800, avail: true },
+            { num: 402, type: '套房', price: 800, avail: true }
+        ];
+        
+        let reservations = [];
+        let nextId = 1;
+        
+        // 切换标签页
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tabId === 'rooms') renderRooms();
+            else if (tabId === 'reservations') renderReservations();
+            else if (tabId === 'newReservation') updateRoomSelect();
+        }
+        
+        // 渲染房间表格
+        function renderRooms() {
+            const tbody = document.getElementById('roomTable');
+            tbody.innerHTML = rooms.map(r => `
+                <tr>
+                    <td>${r.num}</td>
+                    <td>${r.type}</td>
+                    <td>¥${r.price}</td>
+                    <td class="${r.avail ? 'status-available' : 'status-booked'}">${r.avail ? '可用' : '已预订'}</td>
+                </tr>
+            `).join('');
+        }
+        
+        // 渲染预订表格
+        function renderReservations() {
+            const tbody = document.getElementById('reservationTable');
+            tbody.innerHTML = reservations.map(r => `
+                <tr>
+                    <td>${r.id}</td>
+                    <td>${r.cust.name}</td>
+                    <td>${r.room.num}</td>
+                    <td>${r.in}</td>
+                    <td>${r.out}</td>
+                    <td>¥${r.total.toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+        
+        // 更新房间下拉框
+        function updateRoomSelect() {
+            const select = document.getElementById('roomSelect');
+            select.innerHTML = rooms.filter(r => r.avail).map(r => 
+                `<option value="${r.num}">${r.type} - ¥${r.price}${r.avail ? '[可用]' : '[已订]'}</option>`
+            ).join('');
+        }
+        
+        // 计算总费用
+        function calculateTotal(roomPrice, checkIn, checkOut) {
+            const inDate = new Date(checkIn);
+            const outDate = new Date(checkOut);
+            const nights = Math.max(1, Math.ceil((outDate - inDate) / (1000 * 60 * 60 * 24)));
+            return roomPrice * nights;
+        }
+        
+        // 创建预订
+        function createReservation() {
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const email = document.getElementById('custEmail').value.trim();
+            const roomNum = parseInt(document.getElementById('roomSelect').value);
+            const checkIn = document.getElementById('checkIn').value;
+            const checkOut = document.getElementById('checkOut').value;
+            
+            if (!name || !phone) {
+                alert('请填写完整的客户信息');
+                return;
+            }
+            
+            const room = rooms.find(r => r.num === roomNum);
+            if (!room || !room.avail) {
+                alert('没有可用房间');
+                return;
+            }
+            
+            const total = calculateTotal(room.price, checkIn, checkOut);
+            reservations.push({
+                id: nextId++,
+                room: room,
+                cust: { name, phone, email },
+                in: checkIn,
+                out: checkOut,
+                total: total
+            });
+            
+            room.avail = false;
+            alert('预订成功!');
+            
+            document.getElementById('custName').value = '';
+            document.getElementById('custPhone').value = '';
+            document.getElementById('custEmail').value = '';
+            document.getElementById('checkIn').value = '2026-03-05';
+            document.getElementById('checkOut').value = '2026-03-07';
+            updateRoomSelect();
+        }
+        
+        // 取消预订
+        let selectedResvIndex = -1;
+        document.getElementById('reservationTable').addEventListener('click', function(e) {
+            const row = e.target.closest('tr');
+            if (!row) return;
+            document.querySelectorAll('#reservationTable tr').forEach(r => r.style.background = '');
+            row.style.background = '#252538';
+            selectedResvIndex = Array.from(this.querySelectorAll('tbody tr')).indexOf(row);
+        });
+        
+        function cancelReservation() {
+            if (selectedResvIndex < 0 || selectedResvIndex >= reservations.length) {
+                alert('请选择要取消的预订');
+                return;
+            }
+            if (confirm('确定要取消这个预订吗？')) {
+                reservations[selectedResvIndex].room.avail = true;
+                reservations.splice(selectedResvIndex, 1);
+                selectedResvIndex = -1;
+                renderReservations();
+                alert('预订已取消');
+            }
+        }
+        
+        // 办理退房
+        function checkOut() {
+            if (selectedResvIndex < 0 || selectedResvIndex >= reservations.length) {
+                alert('请选择要办理退房的预订');
+                return;
+            }
+            const resv = reservations[selectedResvIndex];
+            if (confirm(`确定要为这位客户办理退房吗？\n总金额：¥${resv.total.toFixed(2)}`)) {
+                resv.room.avail = true;
+                reservations.splice(selectedResvIndex, 1);
+                selectedResvIndex = -1;
+                renderReservations();
+                alert('退房成功！感谢光临!');
+            }
+        }
+        
+        // 初始化
+        renderRooms();
+        updateRoomSelect();
+    </script>
+</body>
+</html>
